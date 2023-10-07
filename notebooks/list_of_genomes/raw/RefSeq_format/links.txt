@@ -1,0 +1,14 @@
+# assembly_summary:
+https://ftp.ncbi.nlm.nih.gov/genomes/refseq/bacteria/assembly_summary.txt
+
+##  See ftp://ftp.ncbi.nlm.nih.gov/genomes/README_assembly_summary.txt for a description of the columns in this file.
+### Link not Working
+
+# assembly_summary_refseq:
+https://ftp.ncbi.nlm.nih.gov/genomes/refseq/assembly_summary_refseq.txt
+
+
+# README_assembly_summary:
+https://ftp.ncbi.nlm.nih.gov/genomes/README_assembly_summary.txt
+
+

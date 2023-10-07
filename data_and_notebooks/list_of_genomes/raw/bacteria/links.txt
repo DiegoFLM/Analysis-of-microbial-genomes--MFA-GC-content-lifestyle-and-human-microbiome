@@ -1,2 +1,0 @@
-# refseq_bacteria_list
-https://ftp.ncbi.nlm.nih.gov/genomes/refseq/bacteria/
