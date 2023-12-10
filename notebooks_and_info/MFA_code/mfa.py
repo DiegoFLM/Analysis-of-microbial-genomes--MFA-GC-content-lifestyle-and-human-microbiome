@@ -1,6 +1,7 @@
 import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib.colors import ListedColormap
+from scipy.stats import linregress
 
 class MFA:
 
@@ -100,15 +101,14 @@ class MFA:
         return i
 
 
-    def plot_tau_q(self, epsilon_range, q_range):
+    def calc_tau_q(self, epsilon_range, q_range, plot_log_i_log_e = False):
         if epsilon_range[0] == 0:
             epsilon_range = epsilon_range[1:]
-        print(epsilon_range)
         i_mat = np.zeros(( len(epsilon_range) * len(q_range), 3), dtype=np.double)
         epsilon_used = np.zeros(( len(epsilon_range), 1))
         for idx_e, epsilon in enumerate(epsilon_range):
             m_size = round(1 / epsilon)
-            m = MFA.cgr(self.seq, m_size)   
+            m = MFA.cgr(self.seq, m_size, cumulative=True)   
             epsilon_used[idx_e] = ( 1 / m_size )
 
             for idx_q, q in enumerate(q_range):
@@ -117,24 +117,74 @@ class MFA:
                 i_mat[(idx_e * len(q_range))+ idx_q, 1] = q
                 i_mat[(idx_e * len(q_range))+ idx_q, 2] = epsilon_used[idx_e]
                 
-                plt.scatter( np.log(epsilon_used[idx_e]), np.log(i) )
-        print(i_mat)
-        print(epsilon_used)
+                if  plot_log_i_log_e:
+                    plt.scatter( np.log(epsilon_used[idx_e]), np.log(i) )
+
+        slopes = []
+        r_squared_vals = []
         for idx_q, q in enumerate(q_range):    
 
-            # Why?
-            # if q == 0:
-            #     continue
-            i_mask = (i_mat[:,1] == q)
-            i_arr_current_q = i_mat[i_mask][:,0]
+            # Linear regression to find slope
+            i_mask = (i_mat[:, 1] == q)
+            i_arr_current_q = i_mat[i_mask][:, 0]
+            log_epsilon = np.log(epsilon_used).flatten()
+            log_i = np.log(i_arr_current_q)
+
+            # Filter out any NaN or infinite values that can cause errors in linregress
+            valid_indices = ~(np.isnan(log_epsilon) | np.isnan(log_i) | 
+                              np.isinf(log_epsilon) | np.isinf(log_i))
+            slope, intercept, r_value, p_value, std_err = linregress(
+                log_epsilon[valid_indices], log_i[valid_indices])
             
-            plt.plot( [np.log(e) for e in epsilon_used], 
-                     np.log(i_arr_current_q))
-            # labels for axis
+
+            slopes.append(slope)
+            r_squared_vals.append(r_value**2)
+
+            if plot_log_i_log_e:
+                plt.plot( log_epsilon, 
+                        log_i)
+                # label for each plot
+                plt.text(log_epsilon[0], log_i[0], 'q = ' + str(q))
+        
+        if plot_log_i_log_e:
             plt.xlabel('log(epsilon)')
             plt.ylabel('log(i)')
-        plt.show()
-        return i_mat, epsilon_used
-    
+            plt.show()
 
+        tau_vals = np.array(slopes)
+        r_squared_vals = np.array(r_squared_vals)
+
+        return tau_vals, r_squared_vals, i_mat, epsilon_used
+
+
+    def calc_Dq(self, epsilon_range, q_range, plot_gds = True, plot_log_i_log_e = False):
+        tau_vals, r_squared_vals, i_mat, epsilon_used = \
+            self.calc_tau_q(epsilon_range, q_range, plot_log_i_log_e)
         
+        # Define a threshold to avoid division by values too close to zero
+        threshold = 1e-6
+        valid_indices = np.where(np.abs(q_range - 1) > threshold)
+
+        # Extract the actual indices array from the tuple
+        valid_indices = valid_indices[0]
+
+        D_q_vals = tau_vals[valid_indices] / (q_range[valid_indices] - 1)
+
+        if plot_gds:
+            plt.scatter(q_range[valid_indices], D_q_vals)
+            plt.xlabel('q')
+            plt.ylabel('D(q)')
+            plt.plot(q_range[valid_indices], D_q_vals)
+            plt.grid()
+            plt.axvline(x=0, color='black', linewidth=1)
+            plt.axhline(y = np.max(D_q_vals), color='red', linewidth=1)
+            # numeric label
+            plt.text(0.1, np.max(D_q_vals) + 0.01, 
+                     'max D(q) = ' + str(np.round(np.max(D_q_vals), 3)) )
+            plt.axhline(y = np.min(D_q_vals), color='blue', linewidth=1)
+            # numeric label
+            plt.text(0.1, np.min(D_q_vals) - 0.03, 
+                     'min D(q) = ' + str(np.round(np.min(D_q_vals), 3)) )
+            plt.show()
+
+        return D_q_vals, r_squared_vals
