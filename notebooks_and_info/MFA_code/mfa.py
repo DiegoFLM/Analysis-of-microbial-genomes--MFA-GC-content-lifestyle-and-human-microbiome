@@ -188,3 +188,14 @@ class MFA:
             plt.show()
 
         return D_q_vals, r_squared_vals
+    
+
+    # GC content
+    def gc_content(self, from_idx = 0, to_idx = None):
+        if to_idx is None:
+            to_idx = len(self.seq)
+        gc_count = 0
+        for base in self.seq[from_idx:to_idx]:
+            if base == 'G' or base == 'C':
+                gc_count += 1
+        return gc_count / (to_idx - from_idx)
