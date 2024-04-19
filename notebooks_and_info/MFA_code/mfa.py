@@ -63,6 +63,44 @@ class MFA:
         return m
     
 
+    # Computes a CGR matrix with a power of 2 divisions on each axis.
+    # This grants the possibility of computing a new CGR matrix with
+    # the half of divisions on each axis.
+    @staticmethod
+    def cgr_powers(seq, power = 10, cumulative = True):
+        m_size = np.power(2, power)
+        m = MFA.cgr(seq, m_size, cumulative)
+        return m
+        
+    
+    # Computes a CGR matrix with the half of divisions on each axis
+    # from a previous CGR matrix with a power of 2 divisions on 
+    # each axis.
+    @staticmethod
+    def cgr_next_power(m):
+        if m is None:
+            print("Matrix is None")
+            return None
+        m_size = m.shape[0]
+        if m_size == 1:
+            print("Matrix size is already 1")
+            return None
+        if m_size % 2 != 0:
+            print(f"Matrix size is not a power of 2, size: {m_size}")
+            return None
+        new_m = np.zeros((int(m_size / 2), int(m_size / 2)), dtype=int)
+
+        # Iterate over the original matrix
+        for i in range(m_size):
+            for j in range(m_size):
+                # Sum the values of the 4 cells that correspond to the new cell
+                new_i = i // 2
+                new_j = j // 2
+                new_m[new_i, new_j] += m[i, j]
+        return new_m
+            
+    
+
     @staticmethod
     def plot_cgr(m, color='black'):
         # Create a binary colormap: white for 0, "color" for any other value.
