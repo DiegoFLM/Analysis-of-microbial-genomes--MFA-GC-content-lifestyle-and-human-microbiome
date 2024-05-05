@@ -6,11 +6,12 @@ from scipy.stats import linregress
 class MFA:
 
     CORNER_DICT = {'A': (0,0), 'T': (1,0), 'C': (0,1), 'G': (1,1)}
-    matrix_size = 10000
+    matrix_size = 8192  # 2^13
 
     def __init__(self, seq):
         self.size_matrix_dict = {}
         self.seq = seq
+        self.cgr_powers_matrix = None
 
     def get_size_matrix_dict(self):
         return self.size_matrix_dict
@@ -66,30 +67,31 @@ class MFA:
     # Computes a CGR matrix with a power of 2 divisions on each axis.
     # This grants the possibility of computing a new CGR matrix with
     # the half of divisions on each axis.
-    @staticmethod
-    def cgr_powers(seq, power = 10, cumulative = True):
+    def cgr_powers(self, power = 13, cumulative = True):
         m_size = np.power(2, power)
-        m = MFA.cgr(seq, m_size, cumulative)
+        m = MFA.cgr(self.seq, m_size, cumulative)
+        self.cgr_powers_matrix = m
         return m
         
     
     # Computes a CGR matrix with the half of divisions on each axis
     # from a previous CGR matrix with a power of 2 divisions on 
     # each axis.
-    @staticmethod
-    def cgr_next_power(m):
+    def cgr_next_power(self, m = None):
         if m is None:
-            print("Matrix is None")
-            return None
+            if self.cgr_powers_matrix is None:
+                print("Matrix is None")
+                return None
+            m = self.cgr_powers_matrix
         m_size = m.shape[0]
         if m_size == 1:
             print("Matrix size is already 1")
             return None
         if m_size % 2 != 0:
-            print(f"Matrix size is not a power of 2, size: {m_size}")
+            print(f"Matrix size is odd, size: {m_size}")
             return None
-        new_m = np.zeros((int(m_size / 2), int(m_size / 2)), dtype=int)
 
+        new_m = np.zeros((m_size // 2, m_size // 2), dtype=int)
         # Iterate over the original matrix
         for i in range(m_size):
             for j in range(m_size):
@@ -97,9 +99,13 @@ class MFA:
                 new_i = i // 2
                 new_j = j // 2
                 new_m[new_i, new_j] += m[i, j]
+        self.cgr_powers_matrix = new_m
         return new_m
-            
-    
+
+
+
+
+
 
     @staticmethod
     def plot_cgr(m, color='black'):
@@ -127,30 +133,34 @@ class MFA:
 
     # Box counting method
     @staticmethod
-    def calc_i(m, q):
-        big_m = np.sum(m)
+    def calc_i(m, big_m, q):
         if big_m == 0:
             return 0  
 
-        epsilon = 1 / m.shape[0]
+        # epsilon = 1 / m.shape[0]
         nonzero_mask = (m != 0)
         nonzero_vals = m[nonzero_mask]
         i = np.sum((nonzero_vals / big_m) ** q)
         return i
 
 
-    def calc_tau_q(self, epsilon_range, q_range, plot_log_i_log_e = False):
+    def calc_tau_q(self, epsilon_range, q_range, use_powers, plot_log_i_log_e = False):
         if epsilon_range[0] == 0:
             epsilon_range = epsilon_range[1:]
         i_mat = np.zeros(( len(epsilon_range) * len(q_range), 3), dtype=np.double)
-        epsilon_used = np.zeros(( len(epsilon_range), 1))
+        epsilon_used = np.zeros( (len(epsilon_range), 1))
         for idx_e, epsilon in enumerate(epsilon_range):
             m_size = round(1 / epsilon)
-            m = MFA.cgr(self.seq, m_size, cumulative=True)   
+            if use_powers:
+                m = self.cgr_next_power()
+            else:
+                m = MFA.cgr(self.seq, m_size, cumulative=True) 
+    
+            big_m = np.sum(m)
             epsilon_used[idx_e] = ( 1 / m_size )
 
             for idx_q, q in enumerate(q_range):
-                i = MFA.calc_i(m, q)
+                i = MFA.calc_i(m, big_m, q)
                 i_mat[(idx_e * len(q_range))+ idx_q, 0] = i
                 i_mat[(idx_e * len(q_range))+ idx_q, 1] = q
                 i_mat[(idx_e * len(q_range))+ idx_q, 2] = epsilon_used[idx_e]
@@ -161,7 +171,6 @@ class MFA:
         slopes = []
         r_squared_vals = []
         for idx_q, q in enumerate(q_range):    
-
             # Linear regression to find slope
             i_mask = (i_mat[:, 1] == q)
             i_arr_current_q = i_mat[i_mask][:, 0]
@@ -174,13 +183,11 @@ class MFA:
             slope, intercept, r_value, p_value, std_err = linregress(
                 log_epsilon[valid_indices], log_i[valid_indices])
             
-
             slopes.append(slope)
             r_squared_vals.append(r_value**2)
 
             if plot_log_i_log_e:
-                plt.plot( log_epsilon, 
-                        log_i)
+                plt.plot( log_epsilon, log_i)
                 # label for each plot
                 plt.text(log_epsilon[0], log_i[0], 'q = ' + str(q))
         
@@ -195,9 +202,13 @@ class MFA:
         return tau_vals, r_squared_vals, i_mat, epsilon_used
 
 
-    def calc_Dq(self, epsilon_range, q_range, plot_gds = True, plot_log_i_log_e = False):
+    def calc_Dq(self, epsilon_range, q_range, plot_gds = True, plot_log_i_log_e = False,
+                use_powers = True, power = 13):
+        if use_powers:
+            self.cgr_powers_matrix = self.cgr_powers(power, cumulative = True)
+            epsilon_range = [ (1 / np.power(2, i)) for i in range(power, 0, -1)]
         tau_vals, r_squared_vals, i_mat, epsilon_used = \
-            self.calc_tau_q(epsilon_range, q_range, plot_log_i_log_e)
+            self.calc_tau_q(epsilon_range, q_range, use_powers, plot_log_i_log_e)
         
         # Define a threshold to avoid division by values too close to zero
         threshold = 1e-6

@@ -72,15 +72,17 @@ class MFA_PROCESSOR:
     
 
     def compute_gc_Dq(self, seq, epsilon_range = np.linspace(0, 0.1, 15),
-                      q_range = np.linspace(-20, 20, 41), plot_gds = False, 
-                                  plot_log_i_log_e = False):
+                    q_range = np.linspace(-20, 20, 41), plot_gds = False, 
+                    plot_log_i_log_e = False, use_powers = True, power = 13):
         instance_mfa = MFA(seq)
         # GC content
         gc_content = instance_mfa.gc_content()
         
+        if use_powers:
+            epsilon_range = [ (1 / np.power(2, i)) for i in range(power, 0, -1)]
         # Compute Dq
         Dq_vals, r_squared = instance_mfa.calc_Dq(epsilon_range, q_range, 
-                                plot_gds, plot_log_i_log_e)
+                                plot_gds, plot_log_i_log_e, use_powers, power)
         Dq = np.max(Dq_vals) - np.min(Dq_vals)
         return gc_content, Dq_vals, r_squared, Dq
         
