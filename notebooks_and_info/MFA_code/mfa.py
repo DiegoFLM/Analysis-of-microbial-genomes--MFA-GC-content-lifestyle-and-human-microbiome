@@ -43,7 +43,9 @@ class MFA:
     @staticmethod
     def cgr(seq, m_size = None, cumulative = False):
         if m_size is None:
-            m_size = MFA.matrix_size
+            print("MFA.cgr(): m_size is None")
+            return None
+            # m_size = MFA.matrix_size
             
         if cumulative:
             m = np.zeros((m_size, m_size), dtype=int)
@@ -58,9 +60,12 @@ class MFA:
                 continue
             last_point = (last_point + corner) / 2
             x, y = last_point * m_size
+
             x = int(x)
             y = int(y)
+
             m[ (m_size - y - 1), x] += 1
+
         return m
     
 
@@ -69,6 +74,9 @@ class MFA:
     # the half of divisions on each axis.
     def cgr_powers(self, power = 13, cumulative = True):
         m_size = np.power(2, power)
+        print(f"mfa.cgr_powers(): power: {power}")
+        print(f"mfa.cgr_powers(): cumulative: {cumulative}")
+        print(f"mfa.cgr_powers(): m_size: {m_size}")
         m = MFA.cgr(self.seq, m_size, cumulative)
         self.cgr_powers_matrix = m
         return m
@@ -80,7 +88,7 @@ class MFA:
     def cgr_next_power(self, m = None):
         if m is None:
             if self.cgr_powers_matrix is None:
-                print("Matrix is None")
+                print("mfa.cgr_next_power(): Matrix is None")
                 return None
             m = self.cgr_powers_matrix
         m_size = m.shape[0]
@@ -137,13 +145,13 @@ class MFA:
         if big_m == 0:
             return 0  
 
-        # epsilon = 1 / m.shape[0]
         nonzero_mask = (m != 0)
         nonzero_vals = m[nonzero_mask]
         i = np.sum((nonzero_vals / big_m) ** q)
         return i
 
 
+    # This method is meant to be invoked from the calc_Dq() method
     def calc_tau_q(self, epsilon_range, q_range, use_powers, plot_log_i_log_e = False):
         if epsilon_range[0] == 0:
             epsilon_range = epsilon_range[1:]
@@ -152,7 +160,10 @@ class MFA:
         for idx_e, epsilon in enumerate(epsilon_range):
             m_size = round(1 / epsilon)
             if use_powers:
-                m = self.cgr_next_power()
+                if idx_e == 0:
+                    m = self.cgr_powers_matrix
+                else:
+                    m = self.cgr_next_power()
             else:
                 m = MFA.cgr(self.seq, m_size, cumulative=True) 
     
@@ -167,7 +178,6 @@ class MFA:
                 
                 if  plot_log_i_log_e:
                     plt.scatter( np.log(epsilon_used[idx_e]), np.log(i) )
-
         slopes = []
         r_squared_vals = []
         for idx_q, q in enumerate(q_range):    
