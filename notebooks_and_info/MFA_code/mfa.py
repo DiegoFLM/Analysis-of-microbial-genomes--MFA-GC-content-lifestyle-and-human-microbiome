@@ -74,9 +74,6 @@ class MFA:
     # the half of divisions on each axis.
     def cgr_powers(self, power = 13, cumulative = True):
         m_size = np.power(2, power)
-        print(f"mfa.cgr_powers(): power: {power}")
-        print(f"mfa.cgr_powers(): cumulative: {cumulative}")
-        print(f"mfa.cgr_powers(): m_size: {m_size}")
         m = MFA.cgr(self.seq, m_size, cumulative)
         self.cgr_powers_matrix = m
         return m
