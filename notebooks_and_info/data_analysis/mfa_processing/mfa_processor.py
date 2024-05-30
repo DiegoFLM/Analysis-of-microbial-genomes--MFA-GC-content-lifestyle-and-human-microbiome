@@ -116,7 +116,6 @@ class MFA_PROCESSOR:
             gc_content, Dq_vals, r_squared_vals, Delta_Dq = self.compute_gc_Dq(seq)
             
             r_squared_vals = np.delete( r_squared_vals, len(r_squared_vals)//2 )
-            print(f"type(r_squared_vals): {type(r_squared_vals)}")
             print(f"content: {gc_content}")
             print(f"len(Dq_vals): {len(Dq_vals)}")
             print(f"len(r_squared_vals): {len(r_squared_vals)}")

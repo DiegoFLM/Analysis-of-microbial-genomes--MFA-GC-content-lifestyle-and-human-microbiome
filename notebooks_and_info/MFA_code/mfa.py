@@ -45,7 +45,6 @@ class MFA:
         if m_size is None:
             print("MFA.cgr(): m_size is None")
             return None
-            # m_size = MFA.matrix_size
             
         if cumulative:
             m = np.zeros((m_size, m_size), dtype=int)
@@ -63,6 +62,14 @@ class MFA:
 
             x = int(x)
             y = int(y)
+            
+            # When points are getting to close to a corner
+            # to the point they get an x or y value of 1,
+            # they are placed in the last row or column
+            if (x == m_size):
+                x -= 1
+            if (y == m_size):
+                y -= 1
 
             m[ (m_size - y - 1), x] += 1
 
