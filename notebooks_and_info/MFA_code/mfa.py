@@ -2,6 +2,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib.colors import ListedColormap
 from scipy.stats import linregress
+import pandas as pd
 
 class MFA:
 
@@ -182,6 +183,8 @@ class MFA:
                 
                 if  plot_log_i_log_e:
                     plt.scatter( np.log(epsilon_used[idx_e]), np.log(i) )
+
+        df_tau_r2 = pd.DataFrame(columns=['Q', 'Tau(Q)', 'r_squared'])
         slopes = []
         r_squared_vals = []
         for idx_q, q in enumerate(q_range):    
@@ -204,6 +207,9 @@ class MFA:
                 plt.plot( log_epsilon, log_i)
                 # label for each plot
                 plt.text(log_epsilon[0], log_i[0], 'q = ' + str(q))
+
+            df_tau_r2 = pd.concat([df_tau_r2, pd.DataFrame(
+                {'Q': [q], 'Tau(Q)': [slope], 'r_squared': [r_value**2]})], ignore_index=True)
         
         if plot_log_i_log_e:
             plt.xlabel('log(epsilon)')
@@ -213,7 +219,10 @@ class MFA:
         tau_vals = np.array(slopes)
         r_squared_vals = np.array(r_squared_vals)
 
-        return tau_vals, r_squared_vals, i_mat, epsilon_used
+        # return tau_vals, r_squared_vals, i_mat, epsilon_used
+        # df_tau_r2.columns = ['Q', 'Tau(Q)', 'r_squared']
+        return df_tau_r2
+    
 
 
     def calc_Dq(self, epsilon_range, q_range, plot_gds = True, plot_log_i_log_e = False,
@@ -221,23 +230,35 @@ class MFA:
         if use_powers:
             self.cgr_powers_matrix = self.cgr_powers(power, cumulative = True)
             epsilon_range = [ (1 / np.power(2, i)) for i in range(power, 0, -1)]
-        tau_vals, r_squared_vals, i_mat, epsilon_used = \
-            self.calc_tau_q(epsilon_range, q_range, use_powers, plot_log_i_log_e)
+        # tau_vals, r_squared_vals, i_mat, epsilon_used = \
+        #     self.calc_tau_q(epsilon_range, q_range, use_powers, plot_log_i_log_e)
+        # df_tau_r2.columns == ['Q', 'Tau(Q)', 'r_squared']
+        df_tau_r2 = self.calc_tau_q(epsilon_range, q_range, use_powers, plot_log_i_log_e)
         
         # Define a threshold to avoid division by values too close to zero
         threshold = 1e-6
-        valid_indices = np.where(np.abs(q_range - 1) > threshold)
+        # valid_indices = np.where(np.abs(q_range - 1) > threshold)
+        # valid_q_vals = (np.abs(df_tau_r2['Tau(Q)']) - 1) > threshold
+        df_valid_q_vals = df_tau_r2.loc[(np.abs(df_tau_r2['Q'] - 1)) > threshold]
 
         # Extract the actual indices array from the tuple
-        valid_indices = valid_indices[0]
+        # valid_indices = valid_indices[0]
 
-        D_q_vals = tau_vals[valid_indices] / (q_range[valid_indices] - 1)
+        # D_q_vals = tau_vals[valid_indices] / (q_range[valid_indices] - 1)
+        
+        # D_q_vals = df_tau_r2[ valid_q_vals / (valid_q_vals - 1)]
+        D_q_vals =  df_valid_q_vals['Tau(Q)'] / (df_valid_q_vals['Tau(Q)'] - 1)
+
+        df_DQ = df_valid_q_vals
+        df_DQ['D(Q)'] = D_q_vals
 
         if plot_gds:
-            plt.scatter(q_range[valid_indices], D_q_vals)
+            # plt.scatter(q_range[valid_indices], D_q_vals)
+            plt.scatter(df_valid_q_vals['Q'], D_q_vals)
             plt.xlabel('q')
             plt.ylabel('D(q)')
-            plt.plot(q_range[valid_indices], D_q_vals)
+            # plt.plot(q_range[valid_indices], D_q_vals)
+            plt.plot(df_valid_q_vals['Q'], D_q_vals)
             plt.grid()
             plt.axvline(x=0, color='black', linewidth=1)
             plt.axhline(y = np.max(D_q_vals), color='red', linewidth=1)
@@ -250,7 +271,9 @@ class MFA:
                      'min D(q) = ' + str(np.round(np.min(D_q_vals), 3)) )
             plt.show()
 
-        return D_q_vals, r_squared_vals
+        # return D_q_vals, r_squared_vals
+        # df_DQ.columns == ['Q', 'Tau(Q)', 'D(Q)', 'r_squared']
+        return df_DQ
     
 
     # GC content

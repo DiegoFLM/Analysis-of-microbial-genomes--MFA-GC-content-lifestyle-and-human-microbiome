@@ -87,11 +87,18 @@ class MFA_PROCESSOR:
         if use_powers:
             epsilon_range = [ (1 / np.power(2, i)) for i in range(power, 0, -1)]
         # Compute Dq
-        Dq_vals, r_squared = instance_mfa.calc_Dq(epsilon_range, q_range, 
+        # Dq_vals, r_squared = instance_mfa.calc_Dq(epsilon_range, q_range, 
+        #                         plot_gds, plot_log_i_log_e, use_powers, power)
+        # Delta_Dq = np.max(Dq_vals) - np.min(Dq_vals)
+
+        df_DQ = instance_mfa.calc_Dq(epsilon_range, q_range, 
                                 plot_gds, plot_log_i_log_e, use_powers, power)
-        Delta_Dq = np.max(Dq_vals) - np.min(Dq_vals)
-        return gc_content, Dq_vals, r_squared, Delta_Dq
-        
+        df_DQ['Delta_Dq'] = df_DQ['D(Q)'].max() - df_DQ['D(Q)'].min()
+        df_DQ['GC_content'] = gc_content
+
+        # return gc_content, Dq_vals, r_squared, Delta_Dq
+        # df_DQ.columns = ['Q', 'Tau(Q)', 'D(Q)', 'r_squared', 'Delta_Dq', 'GC_content']
+        return df_DQ
 
     def compute_gc_mfa_from_list(self, directory_paths, csv_destiny_path):
         df_results = pd.DataFrame(columns=['Organism', 'path', 'seq_length', 'GC_content', 'Q', 
@@ -113,31 +120,44 @@ class MFA_PROCESSOR:
             fna_path = self.get_path_fna(dir)
             # for file_path in dir_files:
             seq, seq_metadata = self.extract_sequence(fna_path)
-            gc_content, Dq_vals, r_squared_vals, Delta_Dq = self.compute_gc_Dq(seq)
+            # gc_content, Dq_vals, r_squared_vals, Delta_Dq = self.compute_gc_Dq(seq)
             
-            r_squared_vals = np.delete( r_squared_vals, len(r_squared_vals)//2 )
-            print(f"content: {gc_content}")
-            print(f"len(Dq_vals): {len(Dq_vals)}")
-            print(f"len(r_squared_vals): {len(r_squared_vals)}")
-            print(f"Delta_Dq: {Delta_Dq}")
+            # r_squared_vals = np.delete( r_squared_vals, len(r_squared_vals)//2 )
+            # print(f"content: {gc_content}")
+            # print(f"len(Dq_vals): {len(Dq_vals)}")
+            # print(f"len(r_squared_vals): {len(r_squared_vals)}")
+            # print(f"Delta_Dq: {Delta_Dq}")
 
-            data = {
-                'Organism': [organism_name] * len(Dq_vals),
-                'path': [dir] * len(Dq_vals),
-                'seq_length': [len(seq)] * len(Dq_vals),
-                'GC_content': [gc_content] * len(Dq_vals),
-                'Q': [pd.NA] * len(Dq_vals),
-                'Tau(Q)': [pd.NA] * len(Dq_vals),
-                'D(Q)_val': Dq_vals,
-                'r_squared_vals': r_squared_vals,
-                'Delta_D(Q)': [Delta_Dq] * len(Dq_vals)
-            }
-            df_organism = pd.DataFrame(data)
-            # df_results = pd.concat([df_results, df_organism], ignore_index=True)
+            # data = {
+            #     'Organism': [organism_name] * len(Dq_vals),
+            #     'path': [dir] * len(Dq_vals),
+            #     'seq_length': [len(seq)] * len(Dq_vals),
+            #     'GC_content': [gc_content] * len(Dq_vals),
+            #     'Q': [pd.NA] * len(Dq_vals),
+            #     'Tau(Q)': [pd.NA] * len(Dq_vals),
+            #     'D(Q)_val': Dq_vals,
+            #     'r_squared_vals': r_squared_vals,
+            #     'Delta_D(Q)': [Delta_Dq] * len(Dq_vals)
+            # }
+            # df_organism = pd.DataFrame(data)
+            # if os.path.exists(csv_destiny_path):
+            #     df_organism.to_csv(csv_destiny_path, mode='a', header=False, index=False)
+            # else:
+            #     df_organism.to_csv(csv_destiny_path, mode='w', header=True, index=False)
+
+
+            # df_DQ.columns == ['Q', 'Tau(Q)', 'D(Q)', 'r_squared', 'Delta_Dq', 'GC_content']
+            df_DQ = self.compute_gc_Dq(seq)
+            df_DQ['Organism'] = organism_name
+            df_DQ['path'] = dir
+            df_DQ['seq_length'] = len(seq)
+            df_DQ = df_DQ[['Organism', 'path', 'seq_length', 'GC_content', 'Q', 'Tau(Q)', 
+                           'D(Q)', 'r_squared', 'Delta_Dq']]
             if os.path.exists(csv_destiny_path):
-                df_organism.to_csv(csv_destiny_path, mode='a', header=False, index=False)
+                df_DQ.to_csv(csv_destiny_path, mode='a', header=False, index=False)
             else:
-                df_organism.to_csv(csv_destiny_path, mode='w', header=True, index=False)
+                df_DQ.to_csv(csv_destiny_path, mode='w', header=True, index=False)
+
 
 
 
