@@ -71,9 +71,7 @@ class MFA:
                 x -= 1
             if (y == m_size):
                 y -= 1
-
             m[ (m_size - y - 1), x] += 1
-
         return m
     
 
@@ -152,12 +150,16 @@ class MFA:
 
         nonzero_mask = (m != 0)
         nonzero_vals = m[nonzero_mask]
+        # for p in (nonzero_vals / big_m) ** q:
+            # if p > 1:
+                # print(f"p > 1; p = {p}; q = {q}; m.shape = {m.shape}; ")
         i = np.sum((nonzero_vals / big_m) ** q)
         return i
 
 
     # This method is meant to be invoked from the calc_Dq() method
-    def calc_tau_q(self, epsilon_range, q_range, use_powers, plot_log_i_log_e = False):
+    def calc_tau_q(self, epsilon_range, q_range, use_powers, 
+                   plot_log_i_log_e = False):
         if epsilon_range[0] == 0:
             epsilon_range = epsilon_range[1:]
         i_mat = np.zeros(( len(epsilon_range) * len(q_range), 3), dtype=np.double)
@@ -172,6 +174,7 @@ class MFA:
             else:
                 m = MFA.cgr(self.seq, m_size, cumulative=True) 
     
+            
             big_m = np.sum(m)
             epsilon_used[idx_e] = ( 1 / m_size )
 
@@ -191,8 +194,8 @@ class MFA:
             # Linear regression to find slope
             i_mask = (i_mat[:, 1] == q)
             i_arr_current_q = i_mat[i_mask][:, 0]
-            log_epsilon = np.log(epsilon_used).flatten()
             log_i = np.log(i_arr_current_q)
+            log_epsilon = np.log(epsilon_used).flatten()
 
             # Filter out any NaN or infinite values that can cause errors in linregress
             valid_indices = ~(np.isnan(log_epsilon) | np.isnan(log_i) | 
@@ -216,8 +219,8 @@ class MFA:
             plt.ylabel('log(i)')
             plt.show()
 
-        tau_vals = np.array(slopes)
-        r_squared_vals = np.array(r_squared_vals)
+        # tau_vals = np.array(slopes)
+        # r_squared_vals = np.array(r_squared_vals)
 
         # return tau_vals, r_squared_vals, i_mat, epsilon_used
         # df_tau_r2.columns = ['Q', 'Tau(Q)', 'r_squared']
@@ -225,15 +228,33 @@ class MFA:
     
 
 
-    def calc_Dq(self, epsilon_range, q_range, plot_gds = True, plot_log_i_log_e = False,
+    def calc_Dq(self, epsilon_range, q_range, plot_gds = True, 
+                plot_log_i_log_e = False,
+                plot_cgr = False,
                 use_powers = True, power = 13):
+        
+        point_size = 0.0001
+
         if use_powers:
             self.cgr_powers_matrix = self.cgr_powers(power, cumulative = True)
             epsilon_range = [ (1 / np.power(2, i)) for i in range(power, 0, -1)]
+            if plot_cgr:
+                # MFA.plot_cgr(self.cgr_powers_matrix, color='blue')
+                MFA.cgr_tuples_plot( MFA.cgr_tuples(self.seq), point_size)
+        else:
+            # m_size = 50
+            # m = MFA.cgr(self.seq, m_size, cumulative=True) 
+            if plot_cgr:
+                # MFA.plot_cgr(m, color='blue')
+                MFA.cgr_tuples_plot(MFA.cgr_tuples(self.seq), point_size)
+
+
+        
         # tau_vals, r_squared_vals, i_mat, epsilon_used = \
         #     self.calc_tau_q(epsilon_range, q_range, use_powers, plot_log_i_log_e)
         # df_tau_r2.columns == ['Q', 'Tau(Q)', 'r_squared']
-        df_tau_r2 = self.calc_tau_q(epsilon_range, q_range, use_powers, plot_log_i_log_e)
+        df_tau_r2 = self.calc_tau_q(epsilon_range, q_range, use_powers, 
+                                    plot_log_i_log_e)
         
         # Define a threshold to avoid division by values too close to zero
         threshold = 1e-6
@@ -247,7 +268,7 @@ class MFA:
         # D_q_vals = tau_vals[valid_indices] / (q_range[valid_indices] - 1)
         
         # D_q_vals = df_tau_r2[ valid_q_vals / (valid_q_vals - 1)]
-        D_q_vals =  df_valid_q_vals['Tau(Q)'] / (df_valid_q_vals['Tau(Q)'] - 1)
+        D_q_vals =  df_valid_q_vals['Tau(Q)'] / (df_valid_q_vals['Q'] - 1)
 
         df_DQ = df_valid_q_vals
         df_DQ['D(Q)'] = D_q_vals
@@ -271,6 +292,7 @@ class MFA:
                      'min D(q) = ' + str(np.round(np.min(D_q_vals), 3)) )
             plt.show()
 
+  
         # return D_q_vals, r_squared_vals
         # df_DQ.columns == ['Q', 'Tau(Q)', 'D(Q)', 'r_squared']
         return df_DQ

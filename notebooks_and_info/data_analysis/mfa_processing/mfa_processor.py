@@ -75,9 +75,10 @@ class MFA_PROCESSOR:
     # Compute and return the GC content of a sequence, Dq values, r_squared and Delta_Dq.
     # This method ensures that the q_range includes the values [-1, 0, 1].
     def compute_gc_Dq(self, seq, epsilon_range = np.linspace(0, 0.1, 15),
-                    q_range = np.linspace(-20, 20, 9), plot_gds = False, 
-                    plot_log_i_log_e = False, use_powers = True, power = 13):
-        q_range = np.append(q_range, [-1, 0, 1])
+                    q_range = np.linspace(-20, 20, 41), plot_gds = False, 
+                    plot_log_i_log_e = False, plot_cgr = False, 
+                    use_powers = True, power = 13):
+        q_range = np.append(q_range, [-1, 0, 0.99999])
         q_range = np.unique(q_range)
         q_range.sort()
         instance_mfa = MFA(seq)
@@ -86,21 +87,26 @@ class MFA_PROCESSOR:
         
         if use_powers:
             epsilon_range = [ (1 / np.power(2, i)) for i in range(power, 0, -1)]
-        # Compute Dq
-        # Dq_vals, r_squared = instance_mfa.calc_Dq(epsilon_range, q_range, 
-        #                         plot_gds, plot_log_i_log_e, use_powers, power)
-        # Delta_Dq = np.max(Dq_vals) - np.min(Dq_vals)
 
-        df_DQ = instance_mfa.calc_Dq(epsilon_range, q_range, 
-                                plot_gds, plot_log_i_log_e, use_powers, power)
+        df_DQ = instance_mfa.calc_Dq(epsilon_range, 
+                                    q_range, 
+                                    plot_gds, 
+                                    plot_log_i_log_e = plot_log_i_log_e, 
+                                    plot_cgr = plot_cgr, 
+                                    use_powers = use_powers, 
+                                    power = power)
         df_DQ['Delta_Dq'] = df_DQ['D(Q)'].max() - df_DQ['D(Q)'].min()
         df_DQ['GC_content'] = gc_content
 
-        # return gc_content, Dq_vals, r_squared, Delta_Dq
         # df_DQ.columns = ['Q', 'Tau(Q)', 'D(Q)', 'r_squared', 'Delta_Dq', 'GC_content']
         return df_DQ
 
-    def compute_gc_mfa_from_list(self, directory_paths, csv_destiny_path):
+    def compute_gc_mfa_from_list(self, directory_paths, csv_destiny_path, 
+                                 epsilon_range = np.linspace(0, 0.1, 15),
+                                 q_range = np.linspace(-20, 20, 41),
+                                 plot_gds = False, 
+                                 plot_log_i_log_e = False, 
+                                 plot_cgr = False):
         df_results = pd.DataFrame(columns=['Organism', 'path', 'seq_length', 'GC_content', 'Q', 
                 'Tau(Q)', 'D(Q)_val', 'r_squared_vals', 'Delta_D(Q)']).astype({
             'Organism': 'str',
@@ -120,43 +126,23 @@ class MFA_PROCESSOR:
             fna_path = self.get_path_fna(dir)
             # for file_path in dir_files:
             seq, seq_metadata = self.extract_sequence(fna_path)
-            # gc_content, Dq_vals, r_squared_vals, Delta_Dq = self.compute_gc_Dq(seq)
-            
-            # r_squared_vals = np.delete( r_squared_vals, len(r_squared_vals)//2 )
-            # print(f"content: {gc_content}")
-            # print(f"len(Dq_vals): {len(Dq_vals)}")
-            # print(f"len(r_squared_vals): {len(r_squared_vals)}")
-            # print(f"Delta_Dq: {Delta_Dq}")
-
-            # data = {
-            #     'Organism': [organism_name] * len(Dq_vals),
-            #     'path': [dir] * len(Dq_vals),
-            #     'seq_length': [len(seq)] * len(Dq_vals),
-            #     'GC_content': [gc_content] * len(Dq_vals),
-            #     'Q': [pd.NA] * len(Dq_vals),
-            #     'Tau(Q)': [pd.NA] * len(Dq_vals),
-            #     'D(Q)_val': Dq_vals,
-            #     'r_squared_vals': r_squared_vals,
-            #     'Delta_D(Q)': [Delta_Dq] * len(Dq_vals)
-            # }
-            # df_organism = pd.DataFrame(data)
-            # if os.path.exists(csv_destiny_path):
-            #     df_organism.to_csv(csv_destiny_path, mode='a', header=False, index=False)
-            # else:
-            #     df_organism.to_csv(csv_destiny_path, mode='w', header=True, index=False)
-
 
             # df_DQ.columns == ['Q', 'Tau(Q)', 'D(Q)', 'r_squared', 'Delta_Dq', 'GC_content']
-            df_DQ = self.compute_gc_Dq(seq)
+            df_DQ = self.compute_gc_Dq(seq, 
+                                       epsilon_range = epsilon_range,
+                                       q_range = q_range,
+                                       plot_gds = plot_gds, 
+                                       plot_log_i_log_e = plot_log_i_log_e,
+                                       plot_cgr = plot_cgr)
             df_DQ['Organism'] = organism_name
             df_DQ['path'] = dir
             df_DQ['seq_length'] = len(seq)
             df_DQ = df_DQ[['Organism', 'path', 'seq_length', 'GC_content', 'Q', 'Tau(Q)', 
                            'D(Q)', 'r_squared', 'Delta_Dq']]
             if os.path.exists(csv_destiny_path):
-                df_DQ.to_csv(csv_destiny_path, mode='a', header=False, index=False)
+                df_DQ.to_csv(csv_destiny_path, mode='a', header=False, index=False, sep=';', decimal=',')
             else:
-                df_DQ.to_csv(csv_destiny_path, mode='w', header=True, index=False)
+                df_DQ.to_csv(csv_destiny_path, mode='w', header=True, index=False, sep=';', decimal=',')
 
 
 
