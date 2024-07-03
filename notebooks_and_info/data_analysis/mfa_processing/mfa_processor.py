@@ -106,26 +106,37 @@ class MFA_PROCESSOR:
                                  q_range = np.linspace(-20, 20, 41),
                                  plot_gds = False, 
                                  plot_log_i_log_e = False, 
-                                 plot_cgr = False):
-        df_results = pd.DataFrame(columns=['Organism', 'path', 'seq_length', 'GC_content', 'Q', 
-                'Tau(Q)', 'D(Q)_val', 'r_squared_vals', 'Delta_D(Q)']).astype({
-            'Organism': 'str',
-            'path': 'str',
-            'seq_length': 'Int64',
-            'GC_content': 'float64',
-            'Q': 'Int64',
-            'Tau(Q)': 'float64',
-            'D(Q)_val': 'float64',
-            'r_squared_vals': 'float64',
-            'Delta_D(Q)': 'float64'
-        })
-        for dir in directory_paths:
-            # dir_files = dir.glob('*')
-            organism_name = dir.name
+                                 plot_cgr = False,
+                                 use_powers = True, 
+                                 power = 13):
+        
+
+        for current_path in directory_paths:
+            if current_path.is_dir():
+                organism_name = current_path.name
+                fna_path = self.get_path_fna(current_path)
+                seq, seq_metadata = self.extract_sequence(fna_path)
+            elif current_path.is_file() and current_path.name.endswith('.fna'):
+                organism_name = current_path.name[:-4]
+                seq, seq_metadata = self.extract_sequence(current_path)
+            else:
+                print(f"Invalid path: {current_path}")
+                continue
+                
             print(f"processing: {organism_name}")
-            fna_path = self.get_path_fna(dir)
-            # for file_path in dir_files:
-            seq, seq_metadata = self.extract_sequence(fna_path)
+
+            df_results = pd.DataFrame(columns=['Organism', 'path', 'seq_length', 'GC_content', 'Q', 
+                    'Tau(Q)', 'D(Q)', 'r_squared', 'Delta_Dq']).astype({
+                'Organism': 'str',
+                'path': 'str',
+                'seq_length': 'Int64',
+                'GC_content': 'float64',
+                'Q': 'Int64',
+                'Tau(Q)': 'float64',
+                'D(Q)': 'float64',
+                'r_squared': 'float64',
+                'Delta_Dq': 'float64'
+            })
 
             # df_DQ.columns == ['Q', 'Tau(Q)', 'D(Q)', 'r_squared', 'Delta_Dq', 'GC_content']
             df_DQ = self.compute_gc_Dq(seq, 
@@ -133,16 +144,50 @@ class MFA_PROCESSOR:
                                        q_range = q_range,
                                        plot_gds = plot_gds, 
                                        plot_log_i_log_e = plot_log_i_log_e,
-                                       plot_cgr = plot_cgr)
+                                       plot_cgr = plot_cgr,
+                                       use_powers = use_powers, 
+                                       power = power)
             df_DQ['Organism'] = organism_name
-            df_DQ['path'] = dir
+            if current_path.is_dir():
+                df_DQ['path'] = current_path
+            elif current_path.is_file():
+                df_DQ['path'] = current_path.parent
             df_DQ['seq_length'] = len(seq)
             df_DQ = df_DQ[['Organism', 'path', 'seq_length', 'GC_content', 'Q', 'Tau(Q)', 
                            'D(Q)', 'r_squared', 'Delta_Dq']]
+            
+
+            df_results = pd.concat([df_results, df_DQ], ignore_index=True)
+            # START SEGMENTS
+
+            for i in range(3):
+                segment_length = int(len(seq)//3)
+                segment = seq[ i * segment_length : (i+1) * segment_length]
+                df_segments = self.compute_gc_Dq(segment, 
+                                        epsilon_range = epsilon_range,
+                                        q_range = q_range,
+                                        plot_gds = plot_gds, 
+                                        plot_log_i_log_e = plot_log_i_log_e,
+                                        plot_cgr = plot_cgr,
+                                        use_powers = use_powers, 
+                                        power = power)
+                df_segments['Organism'] = organism_name + f'_segment_{i+1}'
+                print(f"processing: {organism_name + f'_segment_{i+1}'}")
+                if current_path.is_dir():
+                    df_segments['path'] = current_path
+                elif current_path.is_file():
+                    df_segments['path'] = current_path.parent
+                df_segments['seq_length'] = len(segment)
+                df_segments = df_segments[['Organism', 'path', 'seq_length', 'GC_content', 'Q', 'Tau(Q)', 
+                            'D(Q)', 'r_squared', 'Delta_Dq']]
+                df_results = pd.concat([df_results, df_segments], ignore_index=True)
+            # END SEGMENTS
+
+
             if os.path.exists(csv_destiny_path):
-                df_DQ.to_csv(csv_destiny_path, mode='a', header=False, index=False, sep=';', decimal=',')
+                df_results.to_csv(csv_destiny_path, mode='a', header=False, index=False, sep=';', decimal=',')
             else:
-                df_DQ.to_csv(csv_destiny_path, mode='w', header=True, index=False, sep=';', decimal=',')
+                df_results.to_csv(csv_destiny_path, mode='w', header=True, index=False, sep=';', decimal=',')
 
 
 
