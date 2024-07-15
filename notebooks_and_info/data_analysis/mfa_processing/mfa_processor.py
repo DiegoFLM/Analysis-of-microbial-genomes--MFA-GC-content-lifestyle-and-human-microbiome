@@ -55,6 +55,12 @@ class MFA_PROCESSOR:
         if path_fna == None:
             print("The path to the .fna file is None.")
             return None
+        
+        # if there is no file, return None
+        if not path_fna.exists():
+            print(f"The file {path_fna} does not exist.")
+            return None
+
         #read the file and clear it
         with open(path_fna, 'r') as f:
             fna_content = f.read()
