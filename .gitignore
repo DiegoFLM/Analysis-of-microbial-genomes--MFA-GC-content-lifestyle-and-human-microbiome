@@ -1,1 +1,64 @@
 data
+
+notebooks_and_info/scrapers/selenium_lifestyle/lifestyle_gcm_selenium.ipynb
+
+# Scrapy:
+# Byte-compiled Python files
+__pycache__/
+*.py[cod]
+*.pyo
+
+# Virtual environment
+venv/
+env/
+
+# Scrapy cache directories
+.scrapy/
+
+# Logs and temporary files
+*.log
+*.out
+*.tmp
+
+# Data and feed output
+*.csv
+*.json
+*.xml
+*.jl
+
+# SQLite database files
+*.db
+
+# Environment configuration
+.env
+.env.*
+
+# System-specific files
+.DS_Store
+Thumbs.db
+
+# Compiled and binary files
+*.so
+*.swp
+
+# IDE and editor files
+.vscode/
+.idea/
+*.sublime-workspace
+*.sublime-project
+
+# Pipfile and Pipfile.lock (if using pipenv)
+Pipfile
+Pipfile.lock
+
+# Node.js (if you use npm for some Scrapy tasks)
+node_modules/
+
+# Build artifacts
+dist/
+build/
+*.egg-info/
+
+# Crawled data (optional)
+output/
+data/
