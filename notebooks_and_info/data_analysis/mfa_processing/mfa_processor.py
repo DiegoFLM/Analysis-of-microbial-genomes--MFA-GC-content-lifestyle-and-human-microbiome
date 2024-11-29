@@ -8,7 +8,7 @@ DIR_SEQUENCE_EXTRACTION = Path.cwd().parent / 'sequence_extraction'
 print(DIR_SEQUENCE_EXTRACTION.exists())
 
 sys.path.append(str(DIR_SEQUENCE_EXTRACTION))
-from decompress_gz_files import decompress_gz_files
+from decompress_gz_files import decompress_gz_files, decompress_tgz_files
 
 DIR_MFA = Path.cwd().parent.parent / 'MFA_code'
 print(DIR_MFA.exists())
@@ -31,7 +31,7 @@ class MFA_PROCESSOR:
 
     
     def decompress(self, include_dirs: list):
-        decompress_gz_files(self.ROOT_PATH, include_dirs)
+        decompress_tgz_files(self.ROOT_PATH, include_dirs)
 
 
     def get_path_fna(self, path_organism: Path):
@@ -164,30 +164,36 @@ class MFA_PROCESSOR:
             
 
             df_results = pd.concat([df_results, df_DQ], ignore_index=True)
-            # START SEGMENTS
 
-            for i in range(3):
-                segment_length = int(len(seq)//3)
-                segment = seq[ i * segment_length : (i+1) * segment_length]
-                df_segments = self.compute_gc_Dq(segment, 
-                                        epsilon_range = epsilon_range,
-                                        q_range = q_range,
-                                        plot_gds = plot_gds, 
-                                        plot_log_i_log_e = plot_log_i_log_e,
-                                        plot_cgr = plot_cgr,
-                                        use_powers = use_powers, 
-                                        power = power)
-                df_segments['Organism'] = organism_name + f'_segment_{i+1}'
-                print(f"processing: {organism_name + f'_segment_{i+1}'}")
-                if current_path.is_dir():
-                    df_segments['path'] = current_path
-                elif current_path.is_file():
-                    df_segments['path'] = current_path.parent
-                df_segments['seq_length'] = len(segment)
-                df_segments = df_segments[['Organism', 'path', 'seq_length', 'GC_content', 'Q', 'Tau(Q)', 
-                            'D(Q)', 'r_squared', 'Delta_Dq']]
-                df_results = pd.concat([df_results, df_segments], ignore_index=True)
-            # END SEGMENTS
+
+
+
+            # # START SEGMENTS
+
+            # for i in range(3):
+            #     segment_length = int(len(seq)//3)
+            #     segment = seq[ i * segment_length : (i+1) * segment_length]
+            #     df_segments = self.compute_gc_Dq(segment, 
+            #                             epsilon_range = epsilon_range,
+            #                             q_range = q_range,
+            #                             plot_gds = plot_gds, 
+            #                             plot_log_i_log_e = plot_log_i_log_e,
+            #                             plot_cgr = plot_cgr,
+            #                             use_powers = use_powers, 
+            #                             power = power)
+            #     df_segments['Organism'] = organism_name + f'_segment_{i+1}'
+            #     print(f"processing: {organism_name + f'_segment_{i+1}'}")
+            #     if current_path.is_dir():
+            #         df_segments['path'] = current_path
+            #     elif current_path.is_file():
+            #         df_segments['path'] = current_path.parent
+            #     df_segments['seq_length'] = len(segment)
+            #     df_segments = df_segments[['Organism', 'path', 'seq_length', 'GC_content', 'Q', 'Tau(Q)', 
+            #                 'D(Q)', 'r_squared', 'Delta_Dq']]
+            #     df_results = pd.concat([df_results, df_segments], ignore_index=True)
+            # # END SEGMENTS
+
+
 
 
             if os.path.exists(csv_destiny_path):
