@@ -6,18 +6,18 @@ def load_urls():
     PATH_DATA = Path.cwd().parent.parent.parent.parent / 'data'
     PATH_PREPROCESSED = PATH_DATA / 'preprocessed'
     # PATH_DF_URLS_ARCHAEA = PATH_PREPROCESSED / 'archaea' / 'archaea_name_formatting.csv'
-
     # df_archaea_name_formatting = pd.read_csv(PATH_DF_URLS_ARCHAEA)
-
     # names = df_archaea_name_formatting['name'].tolist()
-    # url_prefix = 'https://www.ncbi.nlm.nih.gov/taxonomy/?term='
 
 
-    PATH_DF_URLS_BACTERIA = PATH_PREPROCESSED / 'bacteria' / 'bacteria_name_formatting.csv'
+    # PATH_DF_URLS_BACTERIA = PATH_PREPROCESSED / 'bacteria' / 'bacteria_name_formatting.csv'
+    # df_bacteria_name_formatting = pd.read_csv(PATH_DF_URLS_BACTERIA)
+    # names = df_bacteria_name_formatting['name'].tolist()
 
-    df_bacteria_name_formatting = pd.read_csv(PATH_DF_URLS_BACTERIA)
+    PATH_DF_URLS_HM = PATH_PREPROCESSED / 'human_microbiome' / 'human_microbiome_name_formatting.csv'
+    df_hm_name_formatting = pd.read_csv(PATH_DF_URLS_HM)
+    names = df_hm_name_formatting['formatted_name_ncbi'].tolist()
 
-    names = df_bacteria_name_formatting['name'].tolist()
     url_prefix = 'https://www.ncbi.nlm.nih.gov/taxonomy/?term='
 
     urls_names = []
